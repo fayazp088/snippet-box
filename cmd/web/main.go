@@ -7,17 +7,19 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/fayazp088/snippet-box/internal/models"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type Application struct {
-	logger *slog.Logger
+	logger   *slog.Logger
+	snippets *models.SnippetModel
 }
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	addr := flag.String("addr", ":8080", "HTTP network address")
-	// username:password@protocol(address)/dbname?param=value
+
 	dsn := flag.String("dsn", "admin:admin@/snippets?parseTime=true", "MYSQL Data Source Name")
 	db, err := OpenDB(*dsn)
 
@@ -28,7 +30,8 @@ func main() {
 	defer db.Close()
 
 	app := &Application{
-		logger: logger,
+		logger:   logger,
+		snippets: &models.SnippetModel{DB: db},
 	}
 
 	flag.Parse()
