@@ -2,7 +2,7 @@ package models
 
 import (
 	"database/sql"
-	"log"
+	"errors"
 	"time"
 )
 
@@ -31,7 +31,6 @@ func (m *SnippetModel) Insert(title, content string, expires int) (int, error) {
 	id, err := result.LastInsertId()
 
 	if err != nil {
-		log.Print("2nd err", err)
 		return 0, err
 	}
 
@@ -39,9 +38,51 @@ func (m *SnippetModel) Insert(title, content string, expires int) (int, error) {
 }
 
 func (m *SnippetModel) Get(id int) (Snippet, error) {
-	return Snippet{}, nil
+	query := `SELECT id, title, content, created, expires FROM snippets
+	WHERE expires > UTC_TIMESTAMP() AND id = ?`
+
+	row := m.DB.QueryRow(query, id)
+	var snippet Snippet
+
+	err := row.Scan(&snippet.ID, &snippet.Title, &snippet.Content, &snippet.Created, &snippet.Expires)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Snippet{}, ErrNoRecord
+		} else {
+			return Snippet{}, nil
+		}
+	}
+
+	return snippet, nil
 }
 
 func (m *SnippetModel) Latest() ([]Snippet, error) {
-	return nil, nil
+
+	query := `SELECT id, title, content, created, expires 
+	FROM snippets WHERE expires > UTC_TIMESTAMP() 
+	ORDER BY id DESC LIMIT 10`
+
+	rows, err := m.DB.Query(query)
+
+	if err != nil {
+		return []Snippet{}, nil
+	}
+	defer rows.Close()
+
+	var snippets []Snippet
+
+	for rows.Next() {
+		var s Snippet
+
+		err = rows.Scan(&s.ID, &s.Title, &s.Content, &s.Created, &s.Created)
+
+		if err != nil {
+			return nil, err
+		}
+
+		snippets = append(snippets, s)
+	}
+
+	return snippets, nil
 }

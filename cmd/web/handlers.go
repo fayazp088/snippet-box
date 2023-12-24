@@ -1,11 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/fayazp088/snippet-box/internal/models"
 )
 
 func (a *Application) home(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +45,18 @@ func (a *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 		a.notFound(w)
 		return
 	}
-	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+
+	snippet, err := a.snippets.Get(id)
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			a.notFound(w)
+		} else {
+			a.serverError(w, r, err)
+		}
+		return
+	}
+	// Write the snippet data as a plain-text HTTP response body.
+	fmt.Fprintf(w, "%+v", snippet)
 }
 
 func (a *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
