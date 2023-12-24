@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -17,26 +16,14 @@ func (a *Application) home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	files := []string{
-		"./ui/html/base.gohtml",
-		"./ui/html/pages/home.gohtml",
-		"./ui/html/partials/nav.gohtml",
-	}
-
-	tmpl, err := template.ParseFiles(files...)
-
+	snippets, err := a.snippets.Latest()
 	if err != nil {
-		a.logger.Error(err.Error())
 		a.serverError(w, r, err)
 		return
 	}
-
-	err = tmpl.ExecuteTemplate(w, "base", nil)
-
-	if err != nil {
-		a.logger.Error(err.Error())
-		a.serverError(w, r, err)
-	}
+	data := a.newTemplateData(r)
+	data.Snippets = snippets
+	a.render(w, r, http.StatusOK, "home.gohtml", data)
 }
 
 func (a *Application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -47,6 +34,7 @@ func (a *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 	}
 
 	snippet, err := a.snippets.Get(id)
+
 	if err != nil {
 		if errors.Is(err, models.ErrNoRecord) {
 			a.notFound(w)
@@ -55,8 +43,10 @@ func (a *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Write the snippet data as a plain-text HTTP response body.
-	fmt.Fprintf(w, "%+v", snippet)
+	data := a.newTemplateData(r)
+	data.Snippet = snippet
+
+	a.render(w, r, http.StatusOK, "view.gohtml", data)
 }
 
 func (a *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
