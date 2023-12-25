@@ -49,7 +49,7 @@ func (a *Application) snippetView(w http.ResponseWriter, r *http.Request) {
 	a.render(w, r, http.StatusOK, "view.gohtml", data)
 }
 
-func (a *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
+func (a *Application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 	log.Print("hello snippetCreate")
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
@@ -69,4 +69,9 @@ func (a *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, fmt.Sprintf("/snippet/view?id=%d", id), http.StatusSeeOther)
+}
+
+func (app *Application) snippetCreate(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Display the form for creating a new snippet..."))
+
 }
