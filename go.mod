@@ -9,6 +9,9 @@ require (
 )
 
 require (
+	github.com/alexedwards/scs v1.4.1 // indirect
+	github.com/alexedwards/scs/mysqlstore v0.0.0-20231113091146-cef4b05350c8 // indirect
+	github.com/alexedwards/scs/v2 v2.7.0 // indirect
 	github.com/bytedance/sonic v1.10.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
