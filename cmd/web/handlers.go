@@ -165,8 +165,58 @@ func (a *Application) userLogin(w http.ResponseWriter, r *http.Request) {
 	a.render(w, r, http.StatusOK, "login.gohtml", data)
 }
 func (a *Application) userLoginPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Authenticate and login the user...")
+	var form userLoginForm
+
+	err := a.decodePostForm(r, &form)
+	if err != nil {
+		a.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	form.CheckField(validator.NotBlank(form.Email), "email", "This field cannot be blank")
+	form.CheckField(!validator.Matches(form.Email, validator.EmailRX), "email", "This field must be a valid email address")
+	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
+
+	if !form.Valid() {
+		data := a.newTemplateData(r)
+		data.Form = form
+		a.render(w, r, http.StatusUnprocessableEntity, "login.gohtml", data)
+		return
+	}
+
+	id, err := a.users.Authenticate(form.Email, form.Password)
+
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			form.AddNonFieldError("Email or password is incorrect")
+			data := a.newTemplateData(r)
+			data.Form = form
+			a.render(w, r, http.StatusUnprocessableEntity, "login.gohtml", data)
+		} else {
+			a.serverError(w, r, err)
+		}
+		return
+	}
+
+	err = a.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+
+	a.sessionManager.Put(r.Context(), "authenticatedUserID", id)
+
+	http.Redirect(w, r, "/snippet/create", http.StatusSeeOther)
 }
 func (a *Application) userLogoutPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Logout the user...")
+	err := a.sessionManager.RenewToken(r.Context())
+	if err != nil {
+		a.serverError(w, r, err)
+		return
+	}
+
+	a.sessionManager.Remove(r.Context(), "authenticatedUserID")
+
+	a.sessionManager.Put(r.Context(), "flash", "You've been logged out successfully!")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
